@@ -1,0 +1,106 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive validation helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Health check document for testConnection()
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // Entity validation helpers
+    function isValidUser(data) {
+      return data.keys().hasAll(['userId', 'email'])
+        && data.keys().hasOnly(['userId', 'email', 'username', 'displayName', 'photoURL', 'motionSensitivity', 'reduceMotion', 'audioChimes', 'createdAt', 'updatedAt'])
+        && data.userId is string && data.userId.size() <= 128
+        && data.userId == request.auth.uid
+        && data.email is string && data.email.size() <= 256
+        && (!('username' in data) || (data.username is string && data.username.size() <= 64))
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024))
+        && (!('motionSensitivity' in data) || (data.motionSensitivity in ['low', 'moderate', 'high', 'severe']))
+        && (!('reduceMotion' in data) || data.reduceMotion is bool)
+        && (!('audioChimes' in data) || data.audioChimes is bool)
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidJourney(data) {
+      return data.keys().hasAll(['journeyId', 'userId', 'transportType', 'durationMinutes'])
+        && data.keys().hasOnly(['journeyId', 'userId', 'transportType', 'durationMinutes', 'avgDiscomfort', 'screenTimeMinutes', 'roughnessIndex', 'stabilizationUsed', 'notes', 'createdAt'])
+        && data.journeyId is string && data.journeyId.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.userId == request.auth.uid
+        && data.transportType in ['car', 'bus', 'train', 'airplane', 'boat']
+        && (data.durationMinutes is int || data.durationMinutes is float)
+        && (!('avgDiscomfort' in data) || (data.avgDiscomfort is int || data.avgDiscomfort is float))
+        && (!('screenTimeMinutes' in data) || (data.screenTimeMinutes is int || data.screenTimeMinutes is float))
+        && (!('roughnessIndex' in data) || (data.roughnessIndex is int || data.roughnessIndex is float))
+        && (!('stabilizationUsed' in data) || data.stabilizationUsed is bool)
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    function isValidSymptom(data) {
+      return data.keys().hasAll(['logId', 'userId', 'severity'])
+        && data.keys().hasOnly(['logId', 'userId', 'severity', 'symptoms', 'triggers', 'reliefApplied', 'createdAt'])
+        && data.logId is string && data.logId.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.userId == request.auth.uid
+        && (data.severity is int || data.severity is float)
+        && (!('symptoms' in data) || (data.symptoms is string && data.symptoms.size() <= 500))
+        && (!('triggers' in data) || (data.triggers is string && data.triggers.size() <= 500))
+        && (!('reliefApplied' in data) || (data.reliefApplied is string && data.reliefApplied.size() <= 200))
+        && (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
+    }
+
+    // User collection rules
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // User Journeys subcollection
+      match /journeys/{journeyId} {
+        allow get, delete: if isOwner(userId) && isValidId(journeyId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(journeyId) && isValidJourney(incoming()) && incoming().userId == userId;
+        allow update: if isOwner(userId) && isValidId(journeyId) && isValidJourney(incoming()) && incoming().userId == userId;
+      }
+
+      // User Symptoms subcollection
+      match /symptoms/{symptomId} {
+        allow get, delete: if isOwner(userId) && isValidId(symptomId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(symptomId) && isValidSymptom(incoming()) && incoming().userId == userId;
+        allow update: if isOwner(userId) && isValidId(symptomId) && isValidSymptom(incoming()) && incoming().userId == userId;
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "MotionEase",
+  "description": "AI-powered travel companion for motion sickness relief with real-time visual stabilization cues, guided breathing, ML risk estimation, and voice support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

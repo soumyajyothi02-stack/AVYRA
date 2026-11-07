@@ -1,0 +1,175 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with motion sickness preferences and sensitivity baselines",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 256
+        },
+        "username": {
+          "type": "string",
+          "description": "User chosen username handle",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User full or display name",
+          "maxLength": 128
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User avatar URL",
+          "maxLength": 1024
+        },
+        "motionSensitivity": {
+          "type": "string",
+          "description": "Sensitivity level: low, moderate, high, severe",
+          "enum": ["low", "moderate", "high", "severe"]
+        },
+        "reduceMotion": {
+          "type": "boolean",
+          "description": "Accessibility preference to minimize UI motion"
+        },
+        "audioChimes": {
+          "type": "boolean",
+          "description": "Enable gentle auditory feedback for breathing exercises"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when user profile was created",
+          "maxLength": 64
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when user profile was last updated",
+          "maxLength": 64
+        }
+      },
+      "required": ["userId", "email"]
+    },
+    "Journey": {
+      "title": "Travel Journey",
+      "description": "Travel journey session recorded by MotionEase",
+      "type": "object",
+      "properties": {
+        "journeyId": {
+          "type": "string",
+          "description": "Unique journey document ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "transportType": {
+          "type": "string",
+          "description": "Type of transport",
+          "enum": ["car", "bus", "train", "airplane", "boat"]
+        },
+        "durationMinutes": {
+          "type": "number",
+          "description": "Total duration in minutes"
+        },
+        "avgDiscomfort": {
+          "type": "number",
+          "description": "Average user discomfort rating from 0 to 10"
+        },
+        "screenTimeMinutes": {
+          "type": "number",
+          "description": "Minutes of phone screen usage during travel"
+        },
+        "roughnessIndex": {
+          "type": "number",
+          "description": "Calculated inertial turbulence / road roughness index"
+        },
+        "stabilizationUsed": {
+          "type": "boolean",
+          "description": "Whether visual horizon stabilization cue was active"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes or voice transcription",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Session creation timestamp",
+          "maxLength": 64
+        }
+      },
+      "required": ["journeyId", "userId", "transportType", "durationMinutes"]
+    },
+    "SymptomLog": {
+      "title": "Symptom Log",
+      "description": "Motion sickness symptom check-in event",
+      "type": "object",
+      "properties": {
+        "logId": {
+          "type": "string",
+          "description": "Unique symptom log document ID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "severity": {
+          "type": "number",
+          "description": "Severity scale from 1 (mild) to 10 (intense)"
+        },
+        "symptoms": {
+          "type": "string",
+          "description": "Comma-separated or JSON list of symptoms experienced",
+          "maxLength": 500
+        },
+        "triggers": {
+          "type": "string",
+          "description": "Observed triggers like reading, curving roads, poor ventilation",
+          "maxLength": 500
+        },
+        "reliefApplied": {
+          "type": "string",
+          "description": "Relief technique used: breathing, acupressure, soundscape, stop",
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Log creation timestamp",
+          "maxLength": 64
+        }
+      },
+      "required": ["logId", "userId", "severity"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Private user profiles. Only readable and writable by the authenticated owner."
+    },
+    "/users/{userId}/journeys/{journeyId}": {
+      "schema": "Journey",
+      "description": "User travel journeys. Accessible only by the parent user."
+    },
+    "/users/{userId}/symptoms/{symptomId}": {
+      "schema": "SymptomLog",
+      "description": "User symptom check-ins. Accessible only by the parent user."
+    }
+  }
+}
